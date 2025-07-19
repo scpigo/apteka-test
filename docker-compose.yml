@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: apteka_app
+    environment:
+      TZ: Europe/Moscow
+    volumes:
+      - ./app:/var/www/html
+    depends_on:
+      - db
+    networks:
+      - apteka
+
+  nginx:
+    image: nginx:stable
+    container_name: apteka_nginx
+    environment:
+      TZ: Europe/Moscow
+    ports:
+      - "8080:80"
+    volumes:
+      - ./app:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - apteka
+
+  db:
+    image: mysql:8.0
+    container_name: apteka_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: apteka
+      MYSQL_USER: apteka
+      MYSQL_PASSWORD: apteka
+      TZ: Europe/Moscow
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - apteka
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: apteka_phpmyadmin
+    restart: always
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      - apteka
+
+  cron:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile_cron
+    container_name: apteka_cron
+    environment:
+      TZ: Europe/Moscow
+    volumes:
+      - ./app:/var/www/html
+      - ./docker/php/crontab:/etc/cron.d/app-cron
+    depends_on:
+      - app
+    networks:
+      - apteka
+
+networks:
+  apteka:
+
+volumes:
+  db_data:

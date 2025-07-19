@@ -1,0 +1,14 @@
+FROM php:8.1-cli
+
+RUN apt-get update && apt-get install -y cron
+RUN docker-php-ext-install pdo_mysql
+
+COPY crontab /etc/cron.d/app-cron
+
+RUN chmod 0644 /etc/cron.d/app-cron
+
+RUN crontab /etc/cron.d/app-cron
+
+RUN touch /var/log/cron.log
+
+CMD ["cron", "-f"]
